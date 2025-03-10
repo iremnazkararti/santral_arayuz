@@ -5,6 +5,7 @@ import xgboost as xgb
 import plotly.graph_objects as go
 from sklearn.metrics import mean_absolute_percentage_error
 from sklearn.model_selection import train_test_split
+import gdown  # Google Drive'dan veri indirmek için
 
 # 📌 Dashboard Ayarları
 st.set_page_config(page_title="⚡ Enerji Üretim Tahmin Dashboard", layout="wide")
@@ -19,18 +20,27 @@ def mean_absolute_percentage_error(y_true, y_pred):
 
 @st.cache_data
 def load_data():
-    file_path = "duzenlenmis_zaman_serisi.csv"  # Dosya yolunu burada güncelleyin
+    # Google Drive ID'si
+    file_id = "1ERlscTm0SV49syHXzyMEvW6pvpPVD3qK"  # Google Drive dosya ID'si
+    url = f"https://drive.google.com/uc?export=download&id={file_id}"  # İndirme linki
+    output = "duzenlenmis_zaman_serisi.csv"  # Dosya adı
+    
     try:
-        # Veriyi yükle
-        df = pd.read_csv(file_path)
-        df.rename(columns={"Unnamed: 0": "date"}, inplace=True)
-        df["date"] = pd.to_datetime(df["date"])  # Tarih sütununu dönüştür
-        df.set_index("date", inplace=True)
-        df = df.resample("D").mean().interpolate()  # Eksik verileri doldur
+        # Google Drive'dan veriyi indir
+        gdown.download(url, output, quiet=False)
+        
+        # CSV'yi oku ve işle
+        df = pd.read_csv(output)
+        df.rename(columns={"Unnamed: 0": "date"}, inplace=True)  # 'Unnamed' kolonunu 'date' olarak değiştir
+        df["date"] = pd.to_datetime(df["date"])  # Tarih formatına çevir
+        df.set_index("date", inplace=True)  # 'date' kolonunu indeks olarak ayarla
+        df = df.resample("D").mean().interpolate()  # Günlük olarak yeniden örnekleme yap ve eksik verileri doldur
         return df
+    
     except Exception as e:
         st.error(f"📛 Veri yüklenirken hata oluştu: {e}")
-        return pd.DataFrame()  # Hata durumunda boş dataframe döndür
+        return pd.DataFrame()  # Hata durumunda boş bir DataFrame döndür
+
 
 # Veriyi yükle
 df = load_data()
